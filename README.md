@@ -79,7 +79,6 @@ CBP/
 │
 ├── include/
 │   ├── protocol.h
-│   ├── packet.h
 │   ├── parser.h
 │   ├── encoder.h
 │   ├── checksum.h
