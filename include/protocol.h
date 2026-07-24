@@ -9,10 +9,10 @@
 #define COMPRESSED_FLAG 0x2
 #define URGENT_FLAG 0x1
 
-#define extract_version x >> 12 & 0x0F
-#define extract_type x >> 8 & 0x0F
-#define extract_flags x >> 4 & 0x0F
-#define extract_payload_length x & 0x0F
+#define extract_version(x) (x >> 12 & 0x0F)
+#define extract_type(x) (x >> 8 & 0x0F)
+#define extract_flags(x) (x >> 4 & 0x0F)
+#define extract_payload_length(x) (x & 0x0F)
 
 #define max_payload_size 15
 #define max_packet_size 18 // header(2 bytes) + payload(15 bytes) + checksum(1 byte)
