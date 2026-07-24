@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 #include "encoder.h"
-#include "checksum.c"
+#include "checksum.h"
 
 int encode_protocol(struct protocol p, uint8_t *raw_bytes, uint8_t buf_size)
 {
@@ -21,10 +21,7 @@ int encode_protocol(struct protocol p, uint8_t *raw_bytes, uint8_t buf_size)
     //Pack the header fields into the first two bytes
     uint16_t packed_header = 0;
 
-    packed_header = (packed_header | p.version) << 12;
-    packed_header = (packed_header | p.type) << 8;
-    packed_header = (packed_header | p.flags) << 4;
-    packed_header = packed_header | p.payload_length;
+    packed_header = (p.version << 12) | (p.type << 8) | (p.flags << 4) | p.payload_length;
 
     //Write the header bytes into the output buffer
     uint8_t total_bytes_written = 0;
@@ -37,17 +34,16 @@ int encode_protocol(struct protocol p, uint8_t *raw_bytes, uint8_t buf_size)
     //Copy the payload into the output buffer
     for(int i = 0; i < p.payload_length; i++)
     {
-        p.payload[i] = raw_bytes[2 + i];
+        raw_bytes[2 + i] = p.payload[i]; 
         total_bytes_written++;
     }
 
     //Compute and append the checksum
 
-    compute_checksum(raw_bytes, buf_size - 1); // Exclude the checksum byte itself
-
-    
+    raw_bytes[buf_size - 1] = compute_checksum(raw_bytes, buf_size - 1); // Exclude the checksum byte itself
+    total_bytes_written++;
 
     //Return the total number of bytes written to the output buffer
 
-    return 0;
+    return total_bytes_written;
 }
