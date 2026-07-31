@@ -10,6 +10,7 @@
 #include "protocol.h"
 #include "encoder.h"
 #include "parser.h"
+#include "utils.h"
 
 
 
@@ -33,6 +34,8 @@ int main()
         printf("Encoding failed\n");
         return -1;
     }
+
+    hexdump(buffer, p.payload_length + 3); // header(2 bytes) + payload + checksum(1 byte)
 
     struct protocol p2;
 
