@@ -78,3 +78,15 @@ stream parsing
 endian support
 fuzz testing
 malformed packet handling
+
+Timestamps
+Ordering
+Deduplication
+Robust checks
+Multi-packet messages
+Return named error ENUMs
+Simple state machine
+
+Final tests:
+Inter-process communication
+Over the wire
