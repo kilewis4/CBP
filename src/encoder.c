@@ -40,7 +40,7 @@ int encode_protocol(struct protocol p, uint8_t *raw_bytes, uint8_t buf_size)
 
     //Compute and append the checksum
 
-    raw_bytes[buf_size - 1] = compute_checksum(raw_bytes, buf_size - 1); // Exclude the checksum byte itself
+    raw_bytes[total_bytes_written] = compute_checksum(raw_bytes, total_bytes_written); // Exclude the checksum byte itself
     total_bytes_written++;
 
     //Return the total number of bytes written to the output buffer
