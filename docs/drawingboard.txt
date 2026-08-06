@@ -1,0 +1,33 @@
+| VERSION | TYPE | FLAGS | PAYLOAD |
+| 4 bits  | 4    | 4     | 4       |
+
+[ HEADER: 16 bits ][ PAYLOAD: 0–15 bytes ]
+
+
+0x01 = LOGIN
+0x02 = MESSAGE
+0x03 = HEARTBEAT
+0x04 = MOVE
+0x05 = ERROR
+
+Bit 0 = ACK required
+Bit 1 = Encrypted
+Bit 2 = Compressed
+Bit 3 = Urgent
+
+Example workload
+Build packet -> Serialize payload -> Parse packet -> 
+
+Development cycle:
+protocol -> encoder → checksum → parser → tests
+
+Value       Name        Meaning
+0x0         Reserved    Invalid
+0x1         Hello       Initiate Connection
+0x2         ACK         Acknowledge
+0x3         DATA        Has a payload
+0x4         PING        Heartbeat request
+0x5         PONG        Heartbeat response
+0x6         ERROR       Error signal
+0x7         BYE         Teardown
+0x8-0xF     --          Reserved 
