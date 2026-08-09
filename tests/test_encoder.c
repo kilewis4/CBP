@@ -15,15 +15,15 @@ uint8_t flag_test()
     flag_test_packet.payload_length = 0;
     uint8_t buffer[max_packet_size];
 
-    uint8_t bytes_written = encode_protocol(flag_test_packet, buffer, sizeof(buffer));
+    int bytes_written = encode_protocol(flag_test_packet, buffer, sizeof(buffer));
     
     if(bytes_written < 0)
     {
         printf("Error encoding flag test packet: %d\n", bytes_written);
-        return bytes_written; // Test failed
+        return 0; // Test failed
     }
     
-    flag_test_packet.flags = 0x10; // Max valid nibble
+    flag_test_packet.flags = 0x0F; // Max valid nibble
     return -1 != encode_protocol(flag_test_packet, buffer, sizeof(buffer)); 
 }
 
@@ -32,37 +32,129 @@ uint8_t buf_size_test()
     struct protocol buf_size_test_packet;
     buf_size_test_packet.version = 1;
     buf_size_test_packet.type = 2;
-    buf_size_test_packet.flags = 0x10; // Invalid nibble
+    buf_size_test_packet.flags = ACK_REQUIRED_FLAG | ENCRYPTED_FLAG; // 0xC
     buf_size_test_packet.payload_length = 0;
     uint8_t buffer[2 + buf_size_test_packet.payload_length + 1];
 
-    uint8_t bytes_written = encode_protocol(buf_size_test_packet, buffer, sizeof(buffer));
+    int bytes_written = encode_protocol(buf_size_test_packet, buffer, sizeof(buffer));
 
     if(bytes_written < 0)
     {
         printf("Error encoding buf size test packet: %d\n", bytes_written);
-        return bytes_written; // Test failed
+        return 0; // Test failed
     }
 
     // Make the buffer one byte too small
-    uint8_t small_buffer[2 + buf_size_test_packet.payload_length]; // One byte
+    int small_buffer[2 + buf_size_test_packet.payload_length]; // One byte
 
     return -2 == encode_protocol(buf_size_test_packet, small_buffer, sizeof(small_buffer));
 }
 
 uint8_t payload_length_test()
 {
-    struct protocol flag_test_packet;
-    flag_test_packet.version = 1;
-    flag_test_packet.type = 2;
-    flag_test_packet.flags = 0x10; // Invalid nibble
-    flag_test_packet.payload_length = 0;
+    struct protocol payload_test_packet;
+    payload_test_packet.version = 1;
+    payload_test_packet.type = 2;
+    payload_test_packet.flags = ACK_REQUIRED_FLAG | ENCRYPTED_FLAG; // 0xC
+    payload_test_packet.payload_length = 0;
     uint8_t buffer[max_packet_size];
 
-    
+    int length_zero_bytes_written = encode_protocol(payload_test_packet, buffer, sizeof(buffer));
+
+    if(length_zero_bytes_written < 0)
+    {
+        printf("Error encoding payload test packet: %d\n", length_zero_bytes_written);
+        return 0; // Test failed
+    }
+
+    uint8_t max_size_buffer[2 + payload_test_packet.payload_length + 1];
+
+    payload_test_packet.payload_length = max_payload_size; // Set to max payload size
+    int length_max_bytes_written = encode_protocol(payload_test_packet, max_size_buffer, sizeof(max_size_buffer));
+
+    if(length_max_bytes_written < 0)
+    {
+        printf("Error encoding payload test packet: %d\n", length_max_bytes_written);
+        return 0; // Test failed
+    }
+
+    return 0 < length_max_bytes_written; // Test passed if both lengths are valid
+}
+
+uint8_t no_buffer_overrun_test()
+{
+    struct protocol p;
+    p.version = 1; 
+    p.type = 2; 
+    p.flags = 3; 
+    p.payload_length = 4;
+    p.payload[0] = 0xAA;
+    p.payload[1] = 0xBB;
+    p.payload[2] = 0xCC;
+    p.payload[3] = 0xDD;
+
+    uint8_t buffer[max_packet_size];
+    memset(buffer, 0xAA, sizeof(buffer)); // sentinel
+
+    int written = encode_protocol(p, buffer, sizeof(buffer));
+    if (written < 0) return 0; // setup failed
+
+    for (int i = written; i < sizeof(buffer); i++)
+    {
+        if (buffer[i] != 0xAA) return 0; // something wrote out of bounds
+    }
+    return 1;
 }
 
 uint8_t bit_isolation_test()
 {
+    struct protocol payload_test_packet;
+    payload_test_packet.version = 1;
+    payload_test_packet.type = 0;
+    payload_test_packet.flags = 0; 
+    payload_test_packet.payload_length = 0;
+    uint8_t buffer[max_packet_size];
 
+    int non_zero_version_bytes_written = encode_protocol(payload_test_packet, buffer, sizeof(buffer));
+
+    if(buffer[0] != 0x10 || buffer[1] != 0x00) // version = 1, type = 0, flags = 0, payload_length = 0
+    {
+        printf("Error encoding bit isolation test packet: on version field\n");
+        return 0; // Test failed
+    }
+
+    payload_test_packet.version = 0;
+    payload_test_packet.type = 1;
+
+    int zero_type_bytes_written = encode_protocol(payload_test_packet, buffer, sizeof(buffer));
+
+    if(buffer[0] != 0x01 || buffer[1] != 0x00) // version = 0, type = 1, flags = 0, payload_length = 0
+    {
+        printf("Error encoding bit isolation test packet: on type field\n");
+        return 0; // Test failed
+    }
+
+    payload_test_packet.type = 0;
+    payload_test_packet.flags = 1; 
+
+    int zero_flag_bytes_written = encode_protocol(payload_test_packet, buffer, sizeof(buffer));
+
+    if(buffer[0] != 0x00 || buffer[1] != 0x10) // version = 0, type = 0, flags = 1, payload_length = 0
+    {
+        printf("Error encoding bit isolation test packet: on flags field\n");
+        return 0; // Test failed
+    }
+
+    payload_test_packet.flags = 0;
+    payload_test_packet.payload_length = 1; 
+
+    int zero_payload_length_bytes_written = encode_protocol(payload_test_packet, buffer, sizeof(buffer));
+
+    if(buffer[0] != 0x00 || buffer[1] != 0x01) // version = 0, type = 0, flags = 1, payload_length = 1
+    {
+        printf("Error encoding bit isolation test packet: on payload length field\n");
+        return 0; // Test failed
+    }
+
+    return 1; // Test passed
 }
