@@ -43,9 +43,10 @@ uint8_t buf_size_test()
     buf_size_test_packet.type = 2;
     buf_size_test_packet.flags = ACK_REQUIRED_FLAG | ENCRYPTED_FLAG; // 0xC
     buf_size_test_packet.payload_length = 0;
-    uint8_t buffer[2 + buf_size_test_packet.payload_length + 1];
+    uint8_t buffer[max_packet_size];
+    uint8_t correct_size = 2 + buf_size_test_packet.payload_length + 1;
 
-    int bytes_written = encode_protocol(buf_size_test_packet, buffer, sizeof(buffer));
+    int bytes_written = encode_protocol(buf_size_test_packet, buffer, correct_size);
 
     if(bytes_written < 0)
     {
@@ -54,9 +55,9 @@ uint8_t buf_size_test()
     }
 
     // Make the buffer one byte too small
-    uint8_t small_buffer[2 + buf_size_test_packet.payload_length]; // One byte
+    uint8_t too_small_size = 2 + buf_size_test_packet.payload_length;
 
-    return -2 == encode_protocol(buf_size_test_packet, small_buffer, sizeof(small_buffer));
+    return -2 == encode_protocol(buf_size_test_packet, buffer, too_small_size);
 }
 
 uint8_t payload_length_test()
@@ -77,15 +78,16 @@ uint8_t payload_length_test()
     }
 
 
-    payload_test_packet.payload_length = max_payload_size; // Set to max payload size
-    uint8_t max_size_buffer[2 + payload_test_packet.payload_length + 1];
+    payload_test_packet.payload_length = max_payload_size;
+    uint8_t max_size_buffer[max_packet_size]; // fixed
+    uint8_t needed_size = 2 + payload_test_packet.payload_length + 1;
 
     for(int i = 0; i < payload_test_packet.payload_length; i++)
     {
         payload_test_packet.payload[i] = i;
     }
 
-    int length_max_bytes_written = encode_protocol(payload_test_packet, max_size_buffer, sizeof(max_size_buffer));
+    int length_max_bytes_written = encode_protocol(payload_test_packet, max_size_buffer, needed_size);
 
     if(length_max_bytes_written < 0)
     {

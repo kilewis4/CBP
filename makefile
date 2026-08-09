@@ -29,12 +29,15 @@ $(BUILD)/utils.o: src/utils.c include/utils.h | $(BUILD)
 $(BUILD)/test_checksum.o: tests/test_checksum.c tests/test_checksum.h include/checksum.h include/encoder.h include/parser.h include/protocol.h | $(BUILD)
 	$(CC) $(CFLAGS) -c -Iinclude -Itests tests/test_checksum.c -o $@
 
-$(BUILD)/test_main.o: tests/test_main.c tests/test_checksum.h | $(BUILD)
+$(BUILD)/test_encoder.o: tests/test_encoder.c tests/test_encoder.h include/encoder.h include/protocol.h | $(BUILD)
+	$(CC) $(CFLAGS) -c -Iinclude -Itests tests/test_encoder.c -o $@
+
+$(BUILD)/test_main.o: tests/test_main.c tests/test_checksum.h tests/test_encoder.h | $(BUILD)
 	$(CC) $(CFLAGS) -c -Iinclude -Itests tests/test_main.c -o $@
 
 test: $(BIN)/test_runner
 
-$(BIN)/test_runner: $(BUILD)/encoder.o $(BUILD)/checksum.o $(BUILD)/parser.o $(BUILD)/utils.o $(BUILD)/test_checksum.o $(BUILD)/test_main.o | $(BIN)
+$(BIN)/test_runner: $(BUILD)/encoder.o $(BUILD)/checksum.o $(BUILD)/parser.o $(BUILD)/utils.o $(BUILD)/test_checksum.o $(BUILD)/test_encoder.o $(BUILD)/test_main.o | $(BIN)
 	$(CC) $(CFLAGS) -o $@ $^
 
 $(BUILD) $(BIN):
