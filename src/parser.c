@@ -39,9 +39,11 @@ int parse_protocol(uint8_t *raw_bytes, uint8_t buf_size, struct protocol *p)
         p->payload[i] = raw_bytes[2 + i]; 
     }
 
+    uint8_t packet_size = 2 + p->payload_length + 1;
+
     // Verify the checksum
 
-    if(compute_checksum(raw_bytes, buf_size - 1) != raw_bytes[buf_size -1])
+    if(compute_checksum(raw_bytes, buf_size - 1) != raw_bytes[packet_size - 1])
     {
         return -3; //Checksum mismatch
     }
