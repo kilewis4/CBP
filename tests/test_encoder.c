@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 #include "checksum.h"
 #include "protocol.h"
 #include "encoder.h"
@@ -17,13 +18,21 @@ uint8_t flag_test()
 
     int bytes_written = encode_protocol(flag_test_packet, buffer, sizeof(buffer));
     
-    if(bytes_written < 0)
+    if(bytes_written != -1)
     {
         printf("Error encoding flag test packet: %d\n", bytes_written);
         return 0; // Test failed
     }
     
     flag_test_packet.flags = 0x0F; // Max valid nibble
+    int valid_result = encode_protocol(flag_test_packet, buffer, sizeof(buffer));
+    if(valid_result < 0)
+    {
+        printf("Error: valid flags (0x0F) were rejected, got %d\n", valid_result);
+        return 0; // Test failed — encoder rejected good input
+    }
+
+
     return -1 != encode_protocol(flag_test_packet, buffer, sizeof(buffer)); 
 }
 
@@ -45,7 +54,7 @@ uint8_t buf_size_test()
     }
 
     // Make the buffer one byte too small
-    int small_buffer[2 + buf_size_test_packet.payload_length]; // One byte
+    uint8_t small_buffer[2 + buf_size_test_packet.payload_length]; // One byte
 
     return -2 == encode_protocol(buf_size_test_packet, small_buffer, sizeof(small_buffer));
 }
@@ -67,15 +76,30 @@ uint8_t payload_length_test()
         return 0; // Test failed
     }
 
-    uint8_t max_size_buffer[2 + payload_test_packet.payload_length + 1];
 
     payload_test_packet.payload_length = max_payload_size; // Set to max payload size
+    uint8_t max_size_buffer[2 + payload_test_packet.payload_length + 1];
+
+    for(int i = 0; i < payload_test_packet.payload_length; i++)
+    {
+        payload_test_packet.payload[i] = i;
+    }
+
     int length_max_bytes_written = encode_protocol(payload_test_packet, max_size_buffer, sizeof(max_size_buffer));
 
     if(length_max_bytes_written < 0)
     {
         printf("Error encoding payload test packet: %d\n", length_max_bytes_written);
         return 0; // Test failed
+    }
+
+    for(int i = 0; i < payload_test_packet.payload_length; i++)
+    {
+        if(max_size_buffer[2 + i] != i)
+        {
+            printf("Error: Payload data mismatch at index %d\n", i);
+            return 0; // Test failed
+        }
     }
 
     return 0 < length_max_bytes_written; // Test passed if both lengths are valid
@@ -99,7 +123,7 @@ uint8_t no_buffer_overrun_test()
     int written = encode_protocol(p, buffer, sizeof(buffer));
     if (written < 0) return 0; // setup failed
 
-    for (int i = written; i < sizeof(buffer); i++)
+    for (uint32_t i = written; i < sizeof(buffer); i++)
     {
         if (buffer[i] != 0xAA) return 0; // something wrote out of bounds
     }
@@ -117,7 +141,7 @@ uint8_t bit_isolation_test()
 
     int non_zero_version_bytes_written = encode_protocol(payload_test_packet, buffer, sizeof(buffer));
 
-    if(buffer[0] != 0x10 || buffer[1] != 0x00) // version = 1, type = 0, flags = 0, payload_length = 0
+    if(buffer[0] != 0x10 || buffer[1] != 0x00 || non_zero_version_bytes_written < 0) // version = 1, type = 0, flags = 0, payload_length = 0
     {
         printf("Error encoding bit isolation test packet: on version field\n");
         return 0; // Test failed
@@ -128,7 +152,7 @@ uint8_t bit_isolation_test()
 
     int zero_type_bytes_written = encode_protocol(payload_test_packet, buffer, sizeof(buffer));
 
-    if(buffer[0] != 0x01 || buffer[1] != 0x00) // version = 0, type = 1, flags = 0, payload_length = 0
+    if(buffer[0] != 0x01 || buffer[1] != 0x00 || zero_type_bytes_written < 0) // version = 0, type = 1, flags = 0, payload_length = 0
     {
         printf("Error encoding bit isolation test packet: on type field\n");
         return 0; // Test failed
@@ -139,7 +163,7 @@ uint8_t bit_isolation_test()
 
     int zero_flag_bytes_written = encode_protocol(payload_test_packet, buffer, sizeof(buffer));
 
-    if(buffer[0] != 0x00 || buffer[1] != 0x10) // version = 0, type = 0, flags = 1, payload_length = 0
+    if(buffer[0] != 0x00 || buffer[1] != 0x10 || zero_flag_bytes_written < 0) // version = 0, type = 0, flags = 1, payload_length = 0
     {
         printf("Error encoding bit isolation test packet: on flags field\n");
         return 0; // Test failed
@@ -150,7 +174,7 @@ uint8_t bit_isolation_test()
 
     int zero_payload_length_bytes_written = encode_protocol(payload_test_packet, buffer, sizeof(buffer));
 
-    if(buffer[0] != 0x00 || buffer[1] != 0x01) // version = 0, type = 0, flags = 1, payload_length = 1
+    if(buffer[0] != 0x00 || buffer[1] != 0x01 || zero_payload_length_bytes_written < 0) // version = 0, type = 0, flags = 1, payload_length = 1
     {
         printf("Error encoding bit isolation test packet: on payload length field\n");
         return 0; // Test failed
