@@ -3,6 +3,7 @@
 #include "checksum.h"
 #include "protocol.h"
 #include "encoder.h"
+#include "parser.h"
 
 uint8_t round_trip_test() // Will encode a packet, then decode it and assert every field of the resulting struct matches
 {
@@ -133,29 +134,35 @@ uint8_t checksum_mismatch_test() //Validly encoded packet, flip a bit in the pay
 }
 
 
-uint8_t bit_isolation_test() // Construct a header with known pattern and confirm fields
+uint8_t parse_bit_isolation_test() // Construct a header with known pattern and confirm fields
 {
     struct protocol p;
     p.version = 1;
-    p.type = 2;
-    p.flags = ACK_REQUIRED_FLAG | ENCRYPTED_FLAG; // 0xC
-    p.payload_length = max_payload_size;
+    p.type = 0;
+    p.flags = 0; // 0xC
+    p.payload_length = 0;
     uint8_t buffer[max_packet_size];
     struct protocol parsed_packet;
 
     int written = encode_protocol(p, buffer, sizeof(buffer));
     if(written < 0 || parse_protocol(buffer, written, &parsed_packet) != 0)
     {
-        printf("Error: bit isolation setup failed on version field\n");
+        printf("Error: parse bit isolation setup failed on version field\n");
         return 0;
     }
+
+    printf("Parsed packet: version=%d, type=%d, flags=%d, payload_length=%d\n", 
+           parsed_packet.version, 
+           parsed_packet.type, 
+           parsed_packet.flags, 
+           parsed_packet.payload_length);
 
     if(parsed_packet.version != 1 || 
         parsed_packet.type != 0 || 
         parsed_packet.flags != 0 || 
         parsed_packet.payload_length != 0)
     {
-        printf("Error: bit isolation failed on version field\n");
+        printf("Error: parse bit isolation failed on version field\n");
         return 0;
     }
 
@@ -166,7 +173,7 @@ uint8_t bit_isolation_test() // Construct a header with known pattern and confir
 
     if(written < 0 || parse_protocol(buffer, written, &parsed_packet) != 0) 
     { 
-        printf("Error: bit isolation setup failed on type field\n");
+        printf("Error: parse bit isolation setup failed on type field\n");
         return 0; 
     }
 
@@ -175,7 +182,7 @@ uint8_t bit_isolation_test() // Construct a header with known pattern and confir
         parsed_packet.flags != 0 || 
         parsed_packet.payload_length != 0)
     {
-        printf("Error: bit isolation failed on type field\n");
+        printf("Error: parse bit isolation failed on type field\n");
         return 0;
     }
  
@@ -186,7 +193,7 @@ uint8_t bit_isolation_test() // Construct a header with known pattern and confir
 
     if(written < 0 || parse_protocol(buffer, written, &parsed_packet) != 0) 
     { 
-        printf("Error: bit isolation setup failed on flags field\n");
+        printf("Error: parse bit isolation setup failed on flags field\n");
         return 0; 
     }
 
@@ -195,7 +202,7 @@ uint8_t bit_isolation_test() // Construct a header with known pattern and confir
         parsed_packet.flags != ACK_REQUIRED_FLAG || 
         parsed_packet.payload_length != 0)
     {
-        printf("Error: bit isolation failed on flags field\n");
+        printf("Error: parse bit isolation failed on flags field\n");
         return 0;
     }
 
@@ -206,7 +213,7 @@ uint8_t bit_isolation_test() // Construct a header with known pattern and confir
 
     if(written < 0 || parse_protocol(buffer, written, &parsed_packet) != 0) 
     { 
-        printf("Error: bit isolation setup failed on payload_length field\n");
+        printf("Error: parse bit isolation setup failed on payload_length field\n");
         return 0; 
     }
 
@@ -215,7 +222,7 @@ uint8_t bit_isolation_test() // Construct a header with known pattern and confir
         parsed_packet.flags != 0 || 
         parsed_packet.payload_length != max_payload_size)
     {
-        printf("Error: bit isolation failed on payload_length field\n");
+        printf("Error: parse bit isolation failed on payload_length field\n");
         return 0;
     }
 
@@ -240,7 +247,7 @@ uint8_t round_trip_max_payload_test() //Same as round_trip_test but with payload
     int written = encode_protocol(round_trip_packet, buffer, sizeof(buffer));
 
     int result = parse_protocol(buffer, 
-                                sizeof(buffer), 
+                                written, 
                                 &round_trip_packet);
 
     if(result != 0)

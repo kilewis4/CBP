@@ -23,7 +23,7 @@ int main()
     if (buffer_too_small_test())                  { passed++; printf("PASS: buffer_too_small_test\n");} else { failed++; printf("FAIL: buffer_too_small_test\n"); }
     if (payload_length_exceeds_buffer_test())     { passed++; printf("PASS: payload_length_exceeds_buffer_test\n");} else { failed++; printf("FAIL: payload_length_exceeds_buffer_test\n"); }
     if (checksum_mismatch_test())                 { passed++; printf("PASS: checksum_mismatch_test\n");} else { failed++; printf("FAIL: checksum_mismatch_test\n"); }
-    if (bit_isolation_test())                     { passed++; printf("PASS: bit_isolation_test\n");} else { failed++; printf("FAIL: bit_isolation_test\n"); }
+    if (parse_bit_isolation_test())                     { passed++; printf("PASS: parse_bit_isolation_test\n");} else { failed++; printf("FAIL: parse_bit_isolation_test\n"); }
     if (round_trip_max_payload_test())            { passed++; printf("PASS: round_trip_max_payload_test\n");} else { failed++; printf("FAIL: round_trip_max_payload_test\n"); }
 
     printf("%d passed, %d failed\n", passed, failed);
