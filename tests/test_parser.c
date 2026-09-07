@@ -135,14 +135,91 @@ uint8_t checksum_mismatch_test() //Validly encoded packet, flip a bit in the pay
 
 uint8_t bit_isolation_test() // Construct a header with known pattern and confirm fields
 {
-    struct protocol small_buffer_packet;
-    small_buffer_packet.version = 1;
-    small_buffer_packet.type = 2;
-    small_buffer_packet.flags = ACK_REQUIRED_FLAG | ENCRYPTED_FLAG; // 0xC
-    small_buffer_packet.payload_length = max_payload_size;
+    struct protocol p;
+    p.version = 1;
+    p.type = 2;
+    p.flags = ACK_REQUIRED_FLAG | ENCRYPTED_FLAG; // 0xC
+    p.payload_length = max_payload_size;
     uint8_t buffer[max_packet_size];
+    struct protocol parsed_packet;
 
-    // TODO: I'm a bit confused here. Will come back later
+    int written = encode_protocol(p, buffer, sizeof(buffer));
+    if(written < 0 || parse_protocol(buffer, written, &parsed_packet) != 0)
+    {
+        printf("Error: bit isolation setup failed on version field\n");
+        return 0;
+    }
+
+    if(parsed_packet.version != 1 || 
+        parsed_packet.type != 0 || 
+        parsed_packet.flags != 0 || 
+        parsed_packet.payload_length != 0)
+    {
+        printf("Error: bit isolation failed on version field\n");
+        return 0;
+    }
+
+    p.version = 0; 
+    p.type = 1;
+
+    written = encode_protocol(p, buffer, sizeof(buffer));
+
+    if(written < 0 || parse_protocol(buffer, written, &parsed_packet) != 0) 
+    { 
+        printf("Error: bit isolation setup failed on type field\n");
+        return 0; 
+    }
+
+    if(parsed_packet.version != 0 || 
+        parsed_packet.type != 1 || 
+        parsed_packet.flags != 0 || 
+        parsed_packet.payload_length != 0)
+    {
+        printf("Error: bit isolation failed on type field\n");
+        return 0;
+    }
+ 
+    p.type = 0;
+    p.flags = ACK_REQUIRED_FLAG; // 0x8
+
+    written = encode_protocol(p, buffer, sizeof(buffer));
+
+    if(written < 0 || parse_protocol(buffer, written, &parsed_packet) != 0) 
+    { 
+        printf("Error: bit isolation setup failed on flags field\n");
+        return 0; 
+    }
+
+    if(parsed_packet.version != 0 || 
+        parsed_packet.type != 0 || 
+        parsed_packet.flags != ACK_REQUIRED_FLAG || 
+        parsed_packet.payload_length != 0)
+    {
+        printf("Error: bit isolation failed on flags field\n");
+        return 0;
+    }
+
+    p.flags = 0;
+    p.payload_length = max_payload_size; // 0xF 
+
+    written = encode_protocol(p, buffer, sizeof(buffer));
+
+    if(written < 0 || parse_protocol(buffer, written, &parsed_packet) != 0) 
+    { 
+        printf("Error: bit isolation setup failed on payload_length field\n");
+        return 0; 
+    }
+
+    if(parsed_packet.version != 0 || 
+        parsed_packet.type != 0 || 
+        parsed_packet.flags != 0 || 
+        parsed_packet.payload_length != max_payload_size)
+    {
+        printf("Error: bit isolation failed on payload_length field\n");
+        return 0;
+    }
+
+    return 1;
 }
 
 
@@ -155,11 +232,25 @@ uint8_t round_trip_max_payload_test() //Same as round_trip_test but with payload
     round_trip_packet.payload_length = max_payload_size;
     uint8_t buffer[max_packet_size];
 
+    for(int i = 0; i < max_packet_size; i++)
+    {
+        buffer[i] = i;
+    }
+
     int written = encode_protocol(round_trip_packet, buffer, sizeof(buffer));
 
     int result = parse_protocol(written, 
                                 sizeof(buffer), 
                                 &round_trip_packet);
+
+    for(int i = 0; i < max_packet_size; i++)
+    {
+        if(round_trip_packet.payload[i] != i)
+        {
+            printf("Error: Round trip test failed on payload, index %d\n", i);
+            return 0; // Test failed
+        }
+    }
 
     if(round_trip_packet.version != 1 ||
        round_trip_packet.type != 2 ||
