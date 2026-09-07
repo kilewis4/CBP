@@ -243,16 +243,11 @@ uint8_t round_trip_max_payload_test() //Same as round_trip_test but with payload
                                 sizeof(buffer), 
                                 &round_trip_packet);
 
-        if(round_trip_packet.version != 1 ||
-       round_trip_packet.type != 2 ||
-       round_trip_packet.flags != (ACK_REQUIRED_FLAG | ENCRYPTED_FLAG) ||
-       round_trip_packet.payload_length != max_payload_size ||
-       result != 0)
+    if(result != 0)
     {
-        printf("Error: Round trip test failed\n");
-        return 0; // Test failed
+        printf("Error: Round trip test failed to parse, got %d\n", result);
+        return 0;
     }
-
 
     for(int i = 0; i < max_payload_size; i++)
     {
@@ -262,6 +257,16 @@ uint8_t round_trip_max_payload_test() //Same as round_trip_test but with payload
             return 0; // Test failed
         }
     }
+
+    if(round_trip_packet.version != 1 ||
+       round_trip_packet.type != 2 ||
+       round_trip_packet.flags != (ACK_REQUIRED_FLAG | ENCRYPTED_FLAG) ||
+       round_trip_packet.payload_length != max_payload_size)
+    {
+        printf("Error: Round trip test failed\n");
+        return 0; // Test failed
+    }
+
 
     return 1; // Test passed
 }
