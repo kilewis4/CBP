@@ -15,7 +15,7 @@ uint8_t round_trip_test() // Will encode a packet, then decode it and assert eve
 
     int written = encode_protocol(round_trip_packet, buffer, sizeof(buffer));
 
-    int result = parse_protocol(round_trip_packet, 
+    int result = parse_protocol(buffer, 
                                 written,
                                 &round_trip_packet);
 
@@ -46,7 +46,7 @@ uint8_t oversized_buffer_test() //Encode a small packet into a buffer sized as m
     int written = encode_protocol(oversized_buffer_packet, buffer, sizeof(buffer));
 
     struct protocol parsed_packet;
-    int result = parse_protocol(oversized_buffer_packet, 
+    int result = parse_protocol(buffer, 
                                 written, 
                                 &parsed_packet);
 
@@ -109,7 +109,7 @@ uint8_t payload_length_exceeds_buffer_test() // Header claims payload_length is 
 
     struct protocol p;
 
-    uint8_t result = parse_protocol(raw_bytes, sizeof(raw_bytes), &p);
+    int result = parse_protocol(raw_bytes, sizeof(raw_bytes), &p);
  
     return result == -2;
 }
@@ -127,7 +127,7 @@ uint8_t checksum_mismatch_test() //Validly encoded packet, flip a bit in the pay
 
     buffer[0] = buffer[0] ^ 1; // Flip a bit in the header
 
-    uint8_t result = parse_protocol(buffer, sizeof(buffer), &mismatch_packet);
+    int result = parse_protocol(buffer, sizeof(buffer), &mismatch_packet);
 
     return result == -3;
 }
@@ -232,27 +232,18 @@ uint8_t round_trip_max_payload_test() //Same as round_trip_test but with payload
     round_trip_packet.payload_length = max_payload_size;
     uint8_t buffer[max_packet_size];
 
-    for(int i = 0; i < max_packet_size; i++)
+    for(int i = 0; i < max_payload_size; i++)
     {
-        buffer[i] = i;
+        round_trip_packet.payload[i] = i;
     }
 
     int written = encode_protocol(round_trip_packet, buffer, sizeof(buffer));
 
-    int result = parse_protocol(written, 
+    int result = parse_protocol(buffer, 
                                 sizeof(buffer), 
                                 &round_trip_packet);
 
-    for(int i = 0; i < max_packet_size; i++)
-    {
-        if(round_trip_packet.payload[i] != i)
-        {
-            printf("Error: Round trip test failed on payload, index %d\n", i);
-            return 0; // Test failed
-        }
-    }
-
-    if(round_trip_packet.version != 1 ||
+        if(round_trip_packet.version != 1 ||
        round_trip_packet.type != 2 ||
        round_trip_packet.flags != (ACK_REQUIRED_FLAG | ENCRYPTED_FLAG) ||
        round_trip_packet.payload_length != max_payload_size ||
@@ -261,5 +252,16 @@ uint8_t round_trip_max_payload_test() //Same as round_trip_test but with payload
         printf("Error: Round trip test failed\n");
         return 0; // Test failed
     }
+
+
+    for(int i = 0; i < max_payload_size; i++)
+    {
+        if(round_trip_packet.payload[i] != i)
+        {
+            printf("Error: Round trip test failed on payload, index %d\n", i);
+            return 0; // Test failed
+        }
+    }
+
     return 1; // Test passed
 }
