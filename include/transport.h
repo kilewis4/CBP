@@ -9,7 +9,6 @@
 
 int cbp_server_start(const char *sock_path);   // socket+bind+listen, returns listening fd
 int cbp_server_accept(int server_fd);           // blocks, returns connected client fd
-
 int cbp_client_connect(const char *sock_path);  // socket+connect, returns connected fd
 
 ssize_t cbp_send_all(int fd, const uint8_t *buf, size_t len);

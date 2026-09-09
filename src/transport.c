@@ -14,7 +14,13 @@ int cbp_server_start(const char *sock_path) // socket() -> bind() -> listen()
     strncpy(addr.sun_path, sock_path, sizeof(addr.sun_path) - 1);
 
     int fd = socket(AF_UNIX, SOCK_STREAM, 0); // TODO: Check AF_UNIX when done local testing, check SOCK_STREAM for correctness 
+
+    if(fd < 0) 
+    {
+        return -1;
+    }
     
+    unlink(sock_path); // Remove any existing socket file
     if(bind(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) // Assign name to a socket
     {
         close(fd);
@@ -30,6 +36,47 @@ int cbp_server_start(const char *sock_path) // socket() -> bind() -> listen()
     return fd;
 }
 
+int cbp_server_accept(int server_fd) // blocks until a client connects, returns connected fd
+{
+    int new_fd = -1;
+
+    while(new_fd < 0)
+    {
+        new_fd = accept(server_fd, NULL, NULL);
+
+        if(new_fd < 0) 
+        {
+            if(errno == EINTR) continue;
+            return -1;
+        }
+    }
+
+    return new_fd;
+}
+
+int cbp_client_connect(const char *sock_path)
+{
+    struct sockaddr_un addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.sun_family = AF_UNIX;
+    strncpy(addr.sun_path, sock_path, sizeof(addr.sun_path) - 1);
+
+    int fd = socket(AF_UNIX, SOCK_STREAM, 0); // TODO: Check AF_UNIX when done local testing, check SOCK_STREAM for correctness 
+
+    if(fd < 0) 
+    {
+        return -1;
+    }
+
+    if(connect(fd, (struct sockaddr*)&addr, sizeof(addr)) < 0)
+    {
+        close(fd);
+        return -1;
+    }
+
+    return fd;
+}
+
 ssize_t cbp_send_all(int fd, const uint8_t *buf, size_t len) 
 {
     size_t sent = 0;
@@ -38,7 +85,7 @@ ssize_t cbp_send_all(int fd, const uint8_t *buf, size_t len)
     {
         ssize_t n = send(fd, buf + sent, len - sent, 0);
 
-        if (n < 0)                         // Likely error
+        if (n < 0)                       // Likely error
         {
             if(errno == EINTR) continue; // Interrupted, try again
             return -1;
