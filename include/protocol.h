@@ -16,6 +16,8 @@
 
 #define max_payload_size 15
 #define max_packet_size 18 // header(2 bytes) + payload(15 bytes) + checksum(1 byte)
+#define header_size 2
+#define checksum_size 1
 
 struct protocol {
     uint8_t version; // bits 15-12

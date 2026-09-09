@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include "encoder.h"
 #include "checksum.h"
+#include "protocol.h"
 
 int encode_protocol(struct protocol p, uint8_t *raw_bytes, uint8_t buf_size)
 {
@@ -13,7 +14,7 @@ int encode_protocol(struct protocol p, uint8_t *raw_bytes, uint8_t buf_size)
         return -1; //Invalid flags
     }
 
-    if(buf_size < 2 + p.payload_length + 1) // header(2 bytes) + payload + checksum(1 byte)
+    if(buf_size < header_size + p.payload_length + checksum_size) // header(2 bytes) + payload + checksum(1 byte)
     {
         return -2; //Buffer too small
     }
