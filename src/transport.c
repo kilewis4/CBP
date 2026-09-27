@@ -65,13 +65,14 @@ int cbp_client_connect(const char *sock_path)
 
     if(fd < 0) 
     {
-        return -1;
+        goto socket_setup_failed;
     }
 
     if(connect(fd, (struct sockaddr*)&addr, sizeof(addr)) < 0)
     {
         close(fd);
-        return -1;
+        socket_setup_failed:
+            return -1;
     }
 
     return fd;
