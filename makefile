@@ -1,10 +1,12 @@
+# --- Flags ---
 CC = gcc
 CFLAGS = -Wall -Wextra -Werror -std=c99
 
 BUILD = build
 BIN = bin
 
-all: $(BIN)/cbp
+# --- Main ---
+all: $(BIN)/cbp $(BIN)/sender $(BIN)/receiver
 
 $(BIN)/cbp: $(BUILD)/main.o $(BUILD)/encoder.o $(BUILD)/checksum.o $(BUILD)/parser.o $(BUILD)/utils.o | $(BIN)
 	$(CC) $(CFLAGS) -o $@ $^
@@ -23,6 +25,23 @@ $(BUILD)/parser.o: src/parser.c include/parser.h include/protocol.h include/chec
 
 $(BUILD)/utils.o: src/utils.c include/utils.h | $(BUILD)
 	$(CC) $(CFLAGS) -c -Iinclude src/utils.c -o $@
+
+# --- Sockets ---
+$(BUILD)/transport.o: src/transport.c include/transport.h include/protocol.h | $(BUILD)
+	$(CC) $(CFLAGS) -c -Iinclude src/transport.c -o $@
+
+$(BUILD)/sender.o: src/sender.c include/transport.h include/protocol.h | $(BUILD)
+	$(CC) $(CFLAGS) -c -Iinclude src/sender.c -o $@
+
+$(BUILD)/receiver.o: src/receiver.c include/transport.h include/protocol.h include/parser.h | $(BUILD)
+	$(CC) $(CFLAGS) -c -Iinclude src/receiver.c -o $@
+
+$(BIN)/sender: $(BUILD)/sender.o $(BUILD)/transport.o $(BUILD)/encoder.o $(BUILD)/checksum.o $(BUILD)/utils.o | $(BIN)
+	$(CC) $(CFLAGS) -o $@ $^
+
+$(BIN)/receiver: $(BUILD)/receiver.o $(BUILD)/transport.o $(BUILD)/parser.o $(BUILD)/checksum.o $(BUILD)/utils.o | $(BIN)
+	$(CC) $(CFLAGS) -o $@ $^
+
 
 # --- Tests ---
 

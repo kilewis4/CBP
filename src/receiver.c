@@ -1,3 +1,6 @@
+#include <unistd.h>
+#include <stdio.h>
+
 #include "protocol.h"
 #include "transport.h"
 #include "parser.h"
@@ -34,5 +37,19 @@ int main(void)
             return -1;
     } 
 
-    return parse_protocol(buf, payload_length + header_size + checksum_size, &p);
+    int bytes_written = parse_protocol(buf, payload_length + header_size + checksum_size, &p);
+    printf("Bytes written: %d\n", bytes_written);
+    printf("Version: %d\n", p.version);
+    printf("Type: %d\n", p.type);
+    printf("Flags: %d\n", p.flags);
+    printf("Payload length: %d\n", p.payload_length);
+    printf("Checksum: %d\n", p.checksum);
+    printf("Payload content: ");
+    for (int i = 0; i < p.payload_length; i++) 
+    {
+        printf("%d ", p.payload[i]);
+    }
+    printf("\n");
+
+    return bytes_written;
 }
