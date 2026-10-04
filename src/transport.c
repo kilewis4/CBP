@@ -16,7 +16,7 @@ int cbp_server_start(const char *sock_path) // socket() -> bind() -> listen()
     addr.sun_family = AF_UNIX;
     strncpy(addr.sun_path, sock_path, sizeof(addr.sun_path) - 1);
 
-    int fd = socket(AF_UNIX, SOCK_STREAM, 0); // TODO: Check AF_UNIX when done local testing, check SOCK_STREAM for correctness 
+    int fd = socket(AF_UNIX, SOCK_STREAM, 0); // TODO: AF_UNIX: local-machine only; swap to AF_INET for the networked phase 
 
     if(fd < 0) 
     {
@@ -64,7 +64,7 @@ int cbp_client_connect(const char *sock_path)
     addr.sun_family = AF_UNIX;
     strncpy(addr.sun_path, sock_path, sizeof(addr.sun_path) - 1);
 
-    int fd = socket(AF_UNIX, SOCK_STREAM, 0); // TODO: Check AF_UNIX when done local testing, check SOCK_STREAM for correctness 
+    int fd = socket(AF_UNIX, SOCK_STREAM, 0); // TODO: AF_UNIX: local-machine only; swap to AF_INET for the networked phase 
 
     if(fd < 0) 
     {
