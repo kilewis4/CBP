@@ -8,7 +8,7 @@ BIN = bin
 # --- Main ---
 all: $(BIN)/cbp $(BIN)/sender $(BIN)/receiver
 
-$(BIN)/cbp: $(BUILD)/main.o $(BUILD)/encoder.o $(BUILD)/checksum.o $(BUILD)/parser.o $(BUILD)/utils.o | $(BIN)
+$(BIN)/cbp: $(BUILD)/main.o $(BUILD)/encoder.o $(BUILD)/checksum.o $(BUILD)/parser.o $(BUILD)/utils.o $(BUILD)/protocol.o | $(BIN)
 	$(CC) $(CFLAGS) -o $@ $^
 
 $(BUILD)/main.o: src/main.c include/parser.h include/protocol.h include/checksum.h include/encoder.h include/utils.h | $(BUILD)
@@ -26,22 +26,27 @@ $(BUILD)/parser.o: src/parser.c include/parser.h include/protocol.h include/chec
 $(BUILD)/utils.o: src/utils.c include/utils.h | $(BUILD)
 	$(CC) $(CFLAGS) -c -Iinclude src/utils.c -o $@
 
+$(BUILD)/protocol.o: src/protocol.c include/protocol.h | $(BUILD)
+	$(CC) $(CFLAGS) -c -Iinclude src/protocol.c -o $@
+
 # --- Sockets ---
 $(BUILD)/transport.o: src/transport.c include/transport.h include/protocol.h | $(BUILD)
 	$(CC) $(CFLAGS) -c -Iinclude src/transport.c -o $@
 
-$(BUILD)/sender.o: src/sender.c include/transport.h include/protocol.h | $(BUILD)
+$(BUILD)/sender.o: src/sender.c include/sender_utils.h include/transport.h include/protocol.h | $(BUILD)
 	$(CC) $(CFLAGS) -c -Iinclude src/sender.c -o $@
 
 $(BUILD)/receiver.o: src/receiver.c include/transport.h include/protocol.h include/parser.h | $(BUILD)
 	$(CC) $(CFLAGS) -c -Iinclude src/receiver.c -o $@
 
-$(BIN)/sender: $(BUILD)/sender.o $(BUILD)/transport.o $(BUILD)/encoder.o $(BUILD)/checksum.o $(BUILD)/utils.o | $(BIN)
+$(BIN)/sender: $(BUILD)/sender.o $(BUILD)/sender_utils.o $(BUILD)/transport.o $(BUILD)/encoder.o $(BUILD)/checksum.o $(BUILD)/utils.o $(BUILD)/protocol.o | $(BIN)
 	$(CC) $(CFLAGS) -o $@ $^
 
-$(BIN)/receiver: $(BUILD)/receiver.o $(BUILD)/transport.o $(BUILD)/parser.o $(BUILD)/checksum.o $(BUILD)/utils.o | $(BIN)
+$(BIN)/receiver: $(BUILD)/receiver.o $(BUILD)/transport.o $(BUILD)/parser.o $(BUILD)/checksum.o $(BUILD)/utils.o $(BUILD)/protocol.o | $(BIN)
 	$(CC) $(CFLAGS) -o $@ $^
 
+$(BUILD)/sender_utils.o: src/sender_utils.c include/sender_utils.h include/protocol.h | $(BUILD)
+	$(CC) $(CFLAGS) -c -Iinclude src/sender_utils.c -o $@
 
 # --- Tests ---
 
@@ -59,7 +64,7 @@ $(BUILD)/test_main.o: tests/test_main.c tests/test_checksum.h tests/test_encoder
 
 test: $(BIN)/test_runner
 
-$(BIN)/test_runner: $(BUILD)/encoder.o $(BUILD)/checksum.o $(BUILD)/parser.o $(BUILD)/utils.o $(BUILD)/test_checksum.o $(BUILD)/test_encoder.o $(BUILD)/test_parser.o $(BUILD)/test_main.o | $(BIN)
+$(BIN)/test_runner: $(BUILD)/encoder.o $(BUILD)/checksum.o $(BUILD)/parser.o $(BUILD)/utils.o $(BUILD)/protocol.o $(BUILD)/test_checksum.o $(BUILD)/test_encoder.o $(BUILD)/test_parser.o $(BUILD)/test_main.o | $(BIN)
 	$(CC) $(CFLAGS) -o $@ $^
 
 $(BUILD) $(BIN):

@@ -28,4 +28,12 @@ struct protocol {
     uint8_t checksum;
 };
 
+
+int create_protocol(uint8_t version, 
+                    uint8_t type, 
+                    uint8_t flags, 
+                    uint8_t payload_length,
+                    uint8_t payload[],
+                    struct protocol *out);
+
 #endif
