@@ -87,6 +87,9 @@ Multi-packet messages
 Return named error ENUMs
 Simple state machine
 
+More refined sending, i.e. check each packet before sending so half completed messages aren't sent
+Sequence number field
+
 Final tests:
 Inter-process communication
 Over the wire

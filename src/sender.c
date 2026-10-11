@@ -1,5 +1,8 @@
 #include <unistd.h>
 #include <stdio.h>
+#include <ctype.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "protocol.h"
 #include "transport.h"
@@ -30,103 +33,127 @@ int create_protocol(uint8_t version,
     return 0;
 }
 
-int send_packet(uint8_t version, 
+int send_packet(int fd,
+                uint8_t version, 
                 uint8_t type, 
                 uint8_t flags, 
                 uint8_t payload[], 
-                uint8_t payload_length, 
-                struct protocol p)
+                uint8_t payload_length,)
 {
-    if(create_protocol(version, type, flags, payload_length, payload , &p) < 0)
-    {
-        fprintf(stderr, "Error: Payload length too high\n", "../Error/error.txt");
+    struct protocol p;
+    uint8_t buf[max_payload_size];
 
-        goto file_domain_closure;
+    if(create_protocol(version, type, flags, payload_length, payload, &p) < 0)
+    {
+        fprintf(stderr, "Error: Payload length too high\n"); //TODO: Log errors
+
+        return -1;
     }
 
     int packet_size = encode_protocol(p, buf, sizeof(buf));
-    if(packet_size <= 0) { goto file_domain_closure; } // Don't attempt to send packets if no packet is encoded
+    if(packet_size <= 0) { return -1; } // Don't attempt to send packets if no packet is encoded
 
-    int fd = cbp_client_connect(CBP_SOCK_PATH);
-    if(fd < 0) { goto file_domain_closure; } // File domain setup failed
+    return cbp_send_all(fd, buf, (size_t)packet_size);
+}
 
-    int size_sent = cbp_send_all(fd, buf, (size_t)packet_size);
+// TODO: Payload only supports hex and paired digits. 
+int parse_line(char file_buffer[], 
+               uint8_t *version, 
+               uint8_t *type, 
+               uint8_t *flags, 
+               uint8_t *payload, 
+               uint8_t *payload_length)
+{
+    // Pointers for strtoul
+    char *start = file_buffer;
+    char *end;
 
+    // Grab version
+    unsigned long v = strtoul(start, &end, 0);
+    if (end == start || v > 15) return -1;  // no digits, or not a nibble
+    start = end;
+    *version = (uint8_t)v;
+
+    // Grab type
+    unsigned long t = strtoul(start, &end, 0);
+    if (end == start || t > 15) return -1;  // no digits, or not a nibble
+    start = end;
+    *type = (uint8_t)t;
+
+    // Grab flags
+    unsigned long f = strtoul(start, &end, 0);
+    if (end == start || f > 15) return -1;  // no digits, or not a nibble
+    start = end;
+    *flags= (uint8_t)f;
+
+    // Grab payload contents
+    while(*start == ' ' || *start == '\t') { start++; }    // move to the payload token (there may be none)
+
+    size_t n = 0;
+    while(isxdigit((unsigned char)start[0]))
+    {
+        if(n == max_payload_size) { return -1; }                          // would be a 16th byte
+        char pair[3] = { start[0], start[1], '\0' };        
+        char *e;
+        unsigned long byte = strtoul(pair, &e, 16);
+        if(e != pair + 2) { return -1; }                    // odd digit count or bad second char
+        payload[n++] = (uint8_t)byte;
+        start += 2;
+    }
+    if(*start != '\0' && !isspace((unsigned char)*start)) { return -1; }   // junk after the payload
+    *payload_length = (uint8_t)n;
+
+    return 0;
 }
 
 // TODO: Make these CLI arguments
 int main(int argc, char *argv[]) 
 {
-    // uint8_t version = 1;
-    // uint8_t type = 3;
-    // uint8_t flags = ACK_REQUIRED_FLAG | ENCRYPTED_FLAG; // 0xC
-    // uint8_t payload[] = {0x99, 0x43, 0x43, 0x44, 0x45};
-    // uint8_t payload_length = sizeof(payload);
-    // uint8_t buf[max_packet_size];
-    // struct protocol p;
+    int rc = -1;                              // Value to be returned, -1 if it faults
+    int fd = -1;                              // File domain reports -1 before defined
+    FILE *fptr = NULL;                        // File pointer starts as NULL
+    char file_buffer[128];                    // File buffer as 128 bytes for trailing characters
+    int line_no = 0;                          // Line we have error on
+
 
     // Requires file name
-    if(argc != 2)
-    {
-        goto failure_occurred;
-    }
+    if(argc != 2) { fprintf(stderr, "usage: %s <script>\n", argv[0]); return -1; }
 
-    struct protocol packets[10]; // Arbitrary 10 packet max sent
-
-    char file_buffer[128];
-    char *endptr;
-
-    FILE *fptr = NULL;
     fptr = fopen(argv[1], "r");
-    if (fd < 0) { goto failure_occured; }
+    if (fptr == NULL) { perror(argv[1]); goto cleanup; }
 
-
-    uint8_t file_contents = (file_buffer, endptr, 0);
+    fd = cbp_client_connect(CBP_SOCK_PATH);
+    if(fd < 0) { goto cleanup; } // File domain setup failed
 
     while(fgets(file_buffer, sizeof(file_buffer), fptr) != NULL)
     {
-        // Pointers for strtoul
-        char *start = line;
-        char *end;
+        line_no++; // Start on first line
 
-        // Grab version
-        unsigned long version = strtoul(start, &end, 0);
-        if (end == start || version > 15) return -1;  // no digits, or not a nibble
-        start = end;
+        size_t len = strlen(file_buffer); 
+        if(len > 0 && file_buffer[len - 1] != '\n' && !feof(fptr))
+        {
+            fprintf(stderr, "line %d: too long\n", line_no);
+            goto cleanup;
+        }
 
-        // Grab type
-        unsigned long type = strtoul(start, &end, 0);
-        if (end == start || type > 15) return -1;  // no digits, or not a nibble
-        start = end;
+        char *p = file_buffer;
+        while(isspace((unsigned char)*p)) { p++; }      // skip leading whitespace
+        if(*p == '#' || *p == '\0') { continue; }       // comment, or nothing but whitespace
 
-        // Grab flags
-        unsigned long flags = strtoul(start, &end, 0);
-        if (end == start || flags > 15) return -1;  // no digits, or not a nibble
-        start = end;
+        uint8_t version, type, flags, payload[max_payload_size], payload_len;
+        if(parse_line(file_buffer, &version, &type, &flags, payload, &payload_len) < 0)
+        {
+            fprintf(stderr, "line %d: bad packet\n", line_no);
+            goto cleanup;
+        }
 
-        // Grab payload contents
-        unsigned long flags = strtoul(start, &end, 0);
-        if (end == start || flags > 15) return -1;  // no digits, or not a nibble
-        start = end;
+        if(send_packet(fd, version, type, flags, payload, payload_len) <= 0) { goto cleanup; }
     }
 
-    if(endptr == 0)
-    {
-        goto close_file_failure;
-    }
+    rc = 0; // Marks success
 
-    send_packet();
-
-    fclose(fptr);
-    close(fd);
-
-    if(size_sent <= 0) // 0 should be unreachable per cbp_send_all's contract; checked anyway — defense against corruption/hardware fault
-    {
-        file_domain_closure:
-            close(fd);
-        close_file_failure:
-            fclose(fptr);
-        failure_occurred:
-            return -1; 
-    } 
+    cleanup:
+        if(fd >= 0) { close(fd); }
+        if (fptr != NULL) { fclose(fptr); }
+        return rc; 
 }
