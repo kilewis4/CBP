@@ -3,6 +3,7 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 #include "protocol.h"
 #include "transport.h"
@@ -11,6 +12,7 @@
 #include "logger.h"
 
 int send_packet(int fd,
+                int line_no,
                 uint8_t version, 
                 uint8_t type, 
                 uint8_t flags, 
@@ -106,7 +108,7 @@ int main(int argc, char *argv[])
             goto cleanup;
         }
 
-        if(send_packet(fd, version, type, flags, payload, payload_len) <= 0) { goto cleanup; }
+        if(send_packet(fd, line_no, version, type, flags, payload, payload_len) <= 0) { goto cleanup; }
 
         packets_sent++;
     }

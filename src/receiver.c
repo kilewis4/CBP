@@ -1,10 +1,13 @@
 #include <unistd.h>
 #include <stdio.h>
+#include <errno.h>
+#include <string.h>
 
 #include "protocol.h"
 #include "transport.h"
 #include "parser.h"
 #include "protocol.h"
+#include "logger.h"
 
 // n is cbp_recv_exact's return value
 static void log_recv_failure(const char *what, int n)
@@ -24,14 +27,14 @@ int main(void)
 
     if(cbp_log_init("receiver") < 0) { perror("cbp_log_init"); return -1; }
 
-    int server_fd = cbp_server_start(CBP_SOCK_PATH);
+    server_fd = cbp_server_start(CBP_SOCK_PATH);
     if(server_fd < 0) // Bad server FD
     { 
         cbp_log(CBP_LOG_ERROR, "server_start failed: %s", strerror(errno));
         goto cleanup; 
     } 
 
-    int client_fd = cbp_server_accept(server_fd); 
+    client_fd = cbp_server_accept(server_fd); 
     if(client_fd < 0) // Bad client FD
     { 
         cbp_log(CBP_LOG_ERROR, "accept failed: %s", strerror(errno));

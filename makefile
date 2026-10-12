@@ -29,20 +29,23 @@ $(BUILD)/utils.o: src/utils.c include/utils.h | $(BUILD)
 $(BUILD)/protocol.o: src/protocol.c include/protocol.h | $(BUILD)
 	$(CC) $(CFLAGS) -c -Iinclude src/protocol.c -o $@
 
+$(BUILD)/logger.o: include/logger.h | $(BUILD)
+	$(CC) $(CFLAGS) -c -Iinclude src/logger.c -o $@
+
 # --- Sockets ---
 $(BUILD)/transport.o: src/transport.c include/transport.h include/protocol.h | $(BUILD)
 	$(CC) $(CFLAGS) -c -Iinclude src/transport.c -o $@
 
-$(BUILD)/sender.o: src/sender.c include/sender_utils.h include/transport.h include/protocol.h | $(BUILD)
+$(BUILD)/sender.o: src/sender.c include/sender_utils.h include/transport.h include/protocol.h include/logger.h | $(BUILD)
 	$(CC) $(CFLAGS) -c -Iinclude src/sender.c -o $@
 
-$(BUILD)/receiver.o: src/receiver.c include/transport.h include/protocol.h include/parser.h | $(BUILD)
+$(BUILD)/receiver.o: src/receiver.c include/transport.h include/protocol.h include/parser.h include/logger.h | $(BUILD)
 	$(CC) $(CFLAGS) -c -Iinclude src/receiver.c -o $@
 
-$(BIN)/sender: $(BUILD)/sender.o $(BUILD)/sender_utils.o $(BUILD)/transport.o $(BUILD)/encoder.o $(BUILD)/checksum.o $(BUILD)/utils.o $(BUILD)/protocol.o | $(BIN)
+$(BIN)/sender: $(BUILD)/logger.o $(BUILD)/sender.o $(BUILD)/sender_utils.o $(BUILD)/transport.o $(BUILD)/encoder.o $(BUILD)/checksum.o $(BUILD)/utils.o $(BUILD)/protocol.o | $(BIN)
 	$(CC) $(CFLAGS) -o $@ $^
 
-$(BIN)/receiver: $(BUILD)/receiver.o $(BUILD)/transport.o $(BUILD)/parser.o $(BUILD)/checksum.o $(BUILD)/utils.o $(BUILD)/protocol.o | $(BIN)
+$(BIN)/receiver: $(BUILD)/logger.o $(BUILD)/receiver.o $(BUILD)/transport.o $(BUILD)/parser.o $(BUILD)/checksum.o $(BUILD)/utils.o $(BUILD)/protocol.o | $(BIN)
 	$(CC) $(CFLAGS) -o $@ $^
 
 $(BUILD)/sender_utils.o: src/sender_utils.c include/sender_utils.h include/protocol.h | $(BUILD)

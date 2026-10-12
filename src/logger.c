@@ -4,8 +4,9 @@
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
-#include <sys/stat.h>
 #include <time.h>
+#include <errno.h>
+#include <sys/stat.h>
 
 #define HEX_MAX_BYTES 32
 
@@ -23,7 +24,9 @@ int cbp_log_init(const char *name)
         return -1;
 
     log_fp = fopen(path, "a");
-    return log_fp ? 0 : -1;
+    if (!log_fp) return -1;
+    cbp_log(CBP_LOG_INFO, "---- %s started, pid %d ----", name, (int)getpid());
+    return 0;
 }
 
 void cbp_log_close(void)
