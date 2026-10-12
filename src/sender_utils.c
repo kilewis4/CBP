@@ -33,7 +33,7 @@ int parse_line(char file_buffer[],
     unsigned long f = strtoul(start, &end, 0);
     if (end == start || f > 15) return -1;  // no digits, or not a nibble
     start = end;
-    *flags= (uint8_t)f;
+    *flags = (uint8_t)f;
 
     // Grab payload contents
     while(*start == ' ' || *start == '\t') { start++; }    // move to the payload token (there may be none)

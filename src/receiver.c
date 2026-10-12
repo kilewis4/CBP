@@ -6,50 +6,61 @@
 #include "parser.h"
 #include "protocol.h"
 
+// n is cbp_recv_exact's return value
+static void log_recv_failure(const char *what, int n)
+{
+    if(n == 0) { cbp_log(CBP_LOG_ERROR, "%s: peer closed connection", what); }
+    else       { cbp_log(CBP_LOG_ERROR, "%s: recv failed: %s", what, strerror(errno)); }
+}
 
 int main(void) 
 {
-    int server_fd = cbp_server_start(CBP_SOCK_PATH);
-
-    if(server_fd == -1) { goto failure_occurred_server; } // Bad server FD
-
-    int client_fd = cbp_server_accept(server_fd); 
-
-    if(client_fd < 0) { goto failure_occurred_all; } // Bad client FD
-
+    int rc = -1;
+    int server_fd = -1;
+    int client_fd = -1;
     uint8_t buf[max_packet_size];
     struct protocol p;
+    int n;
 
-    if(cbp_recv_exact(client_fd, buf, 2) <= 0) { goto failure_occurred_all; } // Put payload length into buf
+    if(cbp_log_init("receiver") < 0) { perror("cbp_log_init"); return -1; }
+
+    int server_fd = cbp_server_start(CBP_SOCK_PATH);
+    if(server_fd < 0) // Bad server FD
+    { 
+        cbp_log(CBP_LOG_ERROR, "server_start failed: %s", strerror(errno));
+        goto cleanup; 
+    } 
+
+    int client_fd = cbp_server_accept(server_fd); 
+    if(client_fd < 0) // Bad client FD
+    { 
+        cbp_log(CBP_LOG_ERROR, "accept failed: %s", strerror(errno));
+        goto cleanup; 
+    } 
+
+    n = cbp_recv_exact(client_fd, buf, header_size);
+    if(n <= 0) { log_recv_failure("header", n); goto cleanup; } // Put payload length into buf
                                 
     uint8_t payload_length = extract_payload_length(buf[1]); // Extract payload_length
 
+    n = cbp_recv_exact(client_fd, buf + header_size, payload_length + checksum_size); // Pull full packet
+    if(n <= 0) { log_recv_failure("body", n); goto cleanup; } 
 
-    if(cbp_recv_exact(client_fd,                             // Pull full packet
-                      buf + header_size, 
-                      payload_length + checksum_size) 
-                      <= 0) 
-    {
-        failure_occurred_all:
-            close(client_fd);
-        failure_occurred_server:
-            close(server_fd);
-            return -1;
-    } 
+        int total = header_size + payload_length + checksum_size;
+    cbp_log_packet("RX", buf, (size_t)total);
 
-    int bytes_written = parse_protocol(buf, payload_length + header_size + checksum_size, &p);
-    printf("Bytes written: %d\n", bytes_written);
-    printf("Version: %d\n", p.version);
-    printf("Type: %d\n", p.type);
-    printf("Flags: %d\n", p.flags);
-    printf("Payload length: %d\n", p.payload_length);
-    printf("Checksum: %d\n", p.checksum);
-    printf("Payload content: ");
-    for (int i = 0; i < p.payload_length; i++) 
+    int bytes_written = parse_protocol(buf, total, &p);
+    if(bytes_written < 0)
     {
-        printf("%d ", p.payload[i]);
+        cbp_log(CBP_LOG_ERROR, "parse_protocol failed (returned %d)", bytes_written);
+        goto cleanup;
     }
-    printf("\n");
 
-    return bytes_written;
+    rc = 0;
+
+cleanup:
+    if(client_fd >= 0) { close(client_fd); }
+    if(server_fd >= 0) { close(server_fd); }
+    cbp_log_close();
+    return rc;
 }
