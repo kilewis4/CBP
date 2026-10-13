@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <signal.h>
 
 #include "protocol.h"
 #include "transport.h"
@@ -63,6 +64,7 @@ int main(int argc, char *argv[])
     char file_buffer[128];                    // File buffer as 128 bytes for trailing characters
     int line_no = 0;                          // Line we have error on
     int packets_sent = 0;
+    signal(SIGPIPE, SIG_IGN);
 
     // Requires file name
     if(argc != 2) { fprintf(stderr, "usage: %s <script>\n", argv[0]); return -1; }

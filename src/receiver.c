@@ -21,9 +21,8 @@ int main(void)
     int rc = -1;
     int server_fd = -1;
     int client_fd = -1;
-    uint8_t buf[max_packet_size];
-    struct protocol p;
-    int n;
+    int received = 0;
+    int rejected = 0;
 
     if(cbp_log_init("receiver") < 0) { perror("cbp_log_init"); return -1; }
 
@@ -41,29 +40,45 @@ int main(void)
         goto cleanup; 
     } 
 
-    n = cbp_recv_exact(client_fd, buf, header_size);
-    if(n <= 0) { log_recv_failure("header", n); goto cleanup; } // Put payload length into buf
-                                
-    uint8_t payload_length = extract_payload_length(buf[1]); // Extract payload_length
+    for(;;)
+    {
+        uint8_t buf[max_packet_size];
+        struct protocol p;
 
-    n = cbp_recv_exact(client_fd, buf + header_size, payload_length + checksum_size); // Pull full packet
-    if(n <= 0) { log_recv_failure("body", n); goto cleanup; } 
+        int n = cbp_recv_exact(client_fd, buf, header_size);
+        if(n == 0)
+        {
+            cbp_log(CBP_LOG_INFO, "sender closed connection");
+            rc = 0;                      // clean end: EOF between packets
+            break;
+        }
+        if(n < 0) { log_recv_failure("header", n); break; }
+
+        uint8_t payload_length = extract_payload_length(buf[1]);
+
+        n = cbp_recv_exact(client_fd, buf + header_size, payload_length + checksum_size);
+        if(n <= 0) { log_recv_failure("body", n); break; }   // EOF here = truncated packet
 
         int total = header_size + payload_length + checksum_size;
-    cbp_log_packet("RX", buf, (size_t)total);
+        cbp_log_packet("RX", buf, (size_t)total);
 
-    int bytes_written = parse_protocol(buf, total, &p);
-    if(bytes_written < 0)
-    {
-        cbp_log(CBP_LOG_ERROR, "parse_protocol failed (returned %d)", bytes_written);
-        goto cleanup;
+        int bytes_written = parse_protocol(buf, total, &p);
+        if(bytes_written < 0)
+        {
+            cbp_log(CBP_LOG_ERROR, "parse_protocol failed (returned %d)", bytes_written);
+            rejected++;
+            break;                    // Something is off, immediately stop
+        }
+
+        received++;
     }
 
-    rc = 0;
 
-cleanup:
-    if(client_fd >= 0) { close(client_fd); }
-    if(server_fd >= 0) { close(server_fd); }
-    cbp_log_close();
-    return rc;
+    cleanup:
+        cbp_log(rc == 0 ? CBP_LOG_INFO : CBP_LOG_ERROR,
+                "done: %d packet(s) parsed, %d rejected, rc=%d", received, rejected, rc);
+        if(client_fd >= 0) { close(client_fd); }
+        if(server_fd >= 0) { close(server_fd); }
+        cbp_log_close();
+        return rc;
 }

@@ -7,6 +7,7 @@
 #include <time.h>
 #include <errno.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #define HEX_MAX_BYTES 32
 
