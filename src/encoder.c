@@ -14,7 +14,7 @@ int encode_protocol(struct protocol p, uint8_t *raw_bytes, uint8_t buf_size)
         return -1; //Invalid flags
     }
 
-    if(buf_size < header_size + p.payload_length + checksum_size) // header(2 bytes) + payload + checksum(1 byte)
+    if(buf_size < header_size + p.payload_length + checksum_size + sequence_size) // header(2 bytes) + payload + checksum(1 byte) + sequence_size(1 byte)
     {
         return -2; //Buffer too small
     }
@@ -31,6 +31,7 @@ int encode_protocol(struct protocol p, uint8_t *raw_bytes, uint8_t buf_size)
     total_bytes_written++;
     raw_bytes[1] = packed_header & 0xFF;
     total_bytes_written++;
+    raw_bytes[2] = p.sequence_number;
 
     //Copy the payload into the output buffer
     for(int i = 0; i < p.payload_length; i++)

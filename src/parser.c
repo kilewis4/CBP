@@ -24,6 +24,7 @@ int parse_protocol(uint8_t *raw_bytes, uint8_t buf_size, struct protocol *p)
     p->type = extract_type(packed_header);
     p->flags = extract_flags(packed_header);
     p->payload_length = extract_payload_length(packed_header);
+    p->sequence_number = raw_bytes[2];
 
     // Validate the payload length
 

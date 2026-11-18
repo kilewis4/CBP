@@ -83,7 +83,7 @@ Timestamps
 Ordering
 Deduplication
 Robust checks
-Multi-packet messages
+Multi-packet messages ------> Done
 Return named error ENUMs
 Simple state machine
 
@@ -91,5 +91,5 @@ More refined sending, i.e. check each packet before sending so half completed me
 Sequence number field
 
 Final tests:
-Inter-process communication
+Inter-process communication ----> Done
 Over the wire

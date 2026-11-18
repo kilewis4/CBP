@@ -56,10 +56,10 @@ int main(void)
 
         uint8_t payload_length = extract_payload_length(buf[1]);
 
-        n = cbp_recv_exact(client_fd, buf + header_size, payload_length + checksum_size);
+        n = cbp_recv_exact(client_fd, buf + header_size, payload_length + checksum_size + sequence_size);
         if(n <= 0) { log_recv_failure("body", n); break; }   // EOF here = truncated packet
 
-        int total = header_size + payload_length + checksum_size;
+        int total = header_size + sequence_size + payload_length + checksum_size;
         cbp_log_packet("RX", buf, (size_t)total);
 
         int bytes_written = parse_protocol(buf, total, &p);

@@ -21,6 +21,7 @@ int main()
     p.type = 2;
     p.flags = ACK_REQUIRED_FLAG | ENCRYPTED_FLAG; // 0xC
     p.payload_length = 3;
+    p.sequence_number = 0;
     uint8_t buffer[max_packet_size];
 
     for (int i = 0; i < p.payload_length; i++)

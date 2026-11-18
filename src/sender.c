@@ -17,13 +17,14 @@ int send_packet(int fd,
                 uint8_t version, 
                 uint8_t type, 
                 uint8_t flags, 
+                uint8_t sequence_number,
                 uint8_t payload[], 
                 uint8_t payload_length)
 {
     struct protocol p;
     uint8_t buf[max_packet_size];
 
-    if(create_protocol(version, type, flags, payload_length, payload, &p) < 0)
+    if(create_protocol(version, type, flags, payload_length, payload, sequence_number, &p) < 0)
     {
         fprintf(stderr, "Error: Payload length too high\n");
         cbp_log(CBP_LOG_ERROR, "line %d: create_protocol failed (payload_length=%u)",
@@ -102,7 +103,7 @@ int main(int argc, char *argv[])
         while(isspace((unsigned char)*p)) { p++; }      // skip leading whitespace
         if(*p == '#' || *p == '\0') { continue; }       // comment, or nothing but whitespace
 
-        uint8_t version, type, flags, payload[max_payload_size], payload_len;
+        uint8_t version, type, flags, payload[max_payload_size], sequence_number, payload_len;
         if(parse_line(file_buffer, &version, &type, &flags, payload, &payload_len) < 0)
         {
             fprintf(stderr, "line %d: bad packet\n", line_no);
@@ -110,7 +111,7 @@ int main(int argc, char *argv[])
             goto cleanup;
         }
 
-        if(send_packet(fd, line_no, version, type, flags, payload, payload_len) <= 0) { goto cleanup; }
+        if(send_packet(fd, line_no, version, type, flags, sequence_number, payload, payload_len) <= 0) { goto cleanup; }
 
         packets_sent++;
     }

@@ -6,6 +6,7 @@ int create_protocol(uint8_t version,
                     uint8_t type, 
                     uint8_t flags, 
                     uint8_t payload_length,
+                    uint8_t sequence_number,
                     uint8_t payload[],
                     struct protocol *out)
 {
@@ -18,6 +19,7 @@ int create_protocol(uint8_t version,
     out->type = type;
     out->flags = flags; 
     out->payload_length = payload_length;
+    out->sequence_number = sequence_number;
 
     for(int i = 0; i < payload_length; i++)
     {

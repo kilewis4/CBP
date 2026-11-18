@@ -9,7 +9,8 @@
 int parse_line(char file_buffer[], 
                uint8_t *version, 
                uint8_t *type, 
-               uint8_t *flags, 
+               uint8_t *flags,
+               uint8_t *sequence_number
                uint8_t *payload, 
                uint8_t *payload_length)
 {
@@ -34,6 +35,11 @@ int parse_line(char file_buffer[],
     if (end == start || f > 15) return -1;  // no digits, or not a nibble
     start = end;
     *flags = (uint8_t)f;
+
+    unsigned long s = strtoul(start, &end, 0);
+    if (end == start || s > 15) return -1;  // no digits, or not a nibble
+    start = end;
+    *sequence_number = (uint8_t)s;
 
     // Grab payload contents
     while(*start == ' ' || *start == '\t') { start++; }    // move to the payload token (there may be none)
